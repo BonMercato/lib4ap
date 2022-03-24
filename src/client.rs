@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{apis::configuration::Configuration};
-
-pub use crate::models::{ModuleConfigField, ModuleObject, CeType};
+use crate::models::{ModuleField, ModuleObject, ObjectList, Object};
 
 custom_error! {
     /// Error types for API responses
@@ -23,8 +21,9 @@ custom_error! {
 pub struct ScopedClient {
     /// Name of the module
     pub module: String,
-
-    configuration: Configuration,
+    client: reqwest::Client,
+    pub pim_url: String,
+    api_key: String,
 }
 
 impl ScopedClient {
@@ -34,18 +33,25 @@ impl ScopedClient {
 
         ScopedClient {
             module: module.to_string(),
-            configuration: Configuration {
-                base_path: pim_url.to_string(),
-                user_agent: Some("lib4ap".to_string()),
-                bearer_access_token: Some(api_key.to_string()),
-                ..Default::default()
-            }
+            client: reqwest::Client::new(),
+            pim_url: pim_url.to_string(),
+            api_key: api_key.to_string(),
         }
     }
 
     /// Get all available fields for this module
-    pub async fn get_fields(&self) -> Result<Vec<ModuleConfigField>, ScopedClientError> {
-        let response = crate::apis::module_api_controller_api::modules_module_get(&self.configuration, &self.module, Some(vec!["fields".to_string()])).await;
+    pub async fn get_fields(&self) -> Result<Vec<ModuleField>, ScopedClientError> {
+        let response = self.client
+            .get(&format!("{}/api/modules/{}?groups=fields", self.module, self.module))
+            .bearer_auth(&self.api_key)
+            .send()
+            .await;
+        if let Err(e) = response {
+            return Err(ScopedClientError::RequestError { message: e.to_string() });
+        }
+        let response = response.unwrap()
+            .json::<ModuleObject>()
+            .await;
         if let Err(e) = response {
             return Err(ScopedClientError::RequestError { message: e.to_string() });
         }
@@ -58,28 +64,51 @@ impl ScopedClient {
     }
 
     /// Get all available objects for this module
-    pub async fn get_all_objects(&self, fields: Vec<&str>, offset: Option<i32>, limit: Option<i32>) -> Result<Vec<ModuleObject>, ScopedClientError> {
-        let response = crate::apis::objects_api_controller_api::modules_module_objects_get(&self.configuration, &self.module, Some(fields.into_iter().map(|s| s.to_string()).collect()), None, offset, limit, None, None, Some(true)).await;
-        if let Err(e) = response {
-            return Err(ScopedClientError::RequestError { message: e.to_string() });
+    pub async fn get_all_objects(&self, fields: Vec<&str>, offset: Option<i32>, limit: Option<i32>) -> Result<ObjectList, ScopedClientError> {
+        let mut query_params: Vec<(String, String)> = fields
+            .into_iter()
+            .map(|f| ("fields".to_string(), f.to_string()))
+            .collect();
+        if let Some(offset) = offset {
+            query_params.push(("offset".to_string(), offset.to_string()));
         }
-        let response = response.unwrap();
-
-        if response.result.is_none() {
-            return Err(ScopedClientError::MissingPropertyError { property: "result".to_string() });
+        if let Some(limit) = limit {
+            query_params.push(("limit".to_string(), limit.to_string()));
         }
+        query_params.push(("totalCount".to_string(), "true".to_string()));
         
-        Ok(response.result.unwrap())
+        let response = self.client
+            .get(&format!("{}/api/modules/{}/objects", self.pim_url, self.module))
+            .bearer_auth(&self.api_key)
+            .query(&query_params)
+            .send()
+            .await
+            .map_err(|e| ScopedClientError::RequestError { message: e.to_string() })?
+            .json::<ObjectList>()
+            .await
+            .map_err(|e| ScopedClientError::RequestError { message: e.to_string() })?;
+
+        Ok(response)
     }
 
     /// Get an object by its id
-    pub async fn get_object_by_id(&self, id: &str, fields: Vec<&str>) -> Result<HashMap<String, Vec<CeType>>, ScopedClientError> {
-        let response = crate::apis::objects_api_controller_api::modules_module_objects_id_get(&self.configuration, &self.module, id, Some(fields.into_iter().map(|s| s.to_string()).collect()), None).await;
-        if let Err(e) = response {
-            return Err(ScopedClientError::RequestError { message: e.to_string() });
-        }
+    pub async fn get_object_by_id(&self, id: &str, fields: Vec<&str>) -> Result<Object, ScopedClientError> {
+        let query_params: Vec<(String, String)> = fields
+            .into_iter()
+            .map(|f| ("fields".to_string(), f.to_string()))
+            .collect();
+        let response = self.client
+            .get(&format!("{}/api/modules/{}/objects/{}", self.pim_url, self.module, id))
+            .bearer_auth(&self.api_key)
+            .query(&query_params)
+            .send()
+            .await
+            .map_err(|e| ScopedClientError::RequestError { message: e.to_string() })?
+            .json::<Object>()
+            .await
+            .map_err(|e| ScopedClientError::RequestError { message: e.to_string() })?;
 
-        Ok(response.unwrap())
+        Ok(response)
     }
 
     /// Create or update a list of objects
@@ -87,13 +116,19 @@ impl ScopedClient {
     /// * If the object doesn't exist and has an id, it will be created with the id.
     /// * If the object doesn't exist and doesn't have an id, it will be created with a new id.
     /// * If the object exists and has an id, it will be updated with the id.
-    pub async fn create_or_update_objects(&self, objects: Vec<ModuleObject>) -> Result<Vec<String>, ScopedClientError> {
-        let response = crate::apis::objects_api_controller_api::modules_module_objects_patch(&self.configuration, &self.module, Some(objects)).await;
-        if let Err(e) = response {
-            return Err(ScopedClientError::RequestError { message: e.to_string() });
-        }
-
-        Ok(response.unwrap())
+    pub async fn create_or_update_objects(&self, objects: Vec<Object>) -> Result<Vec<String>, ScopedClientError> {
+        let response = self.client
+            .patch(&format!("{}/api/modules/{}/objects", self.pim_url, self.module))
+            .bearer_auth(&self.api_key)
+            .json(&objects)
+            .send()
+            .await
+            .map_err(|e| ScopedClientError::RequestError { message: e.to_string() })?
+            .json::<Vec<String>>()
+            .await
+            .map_err(|e| ScopedClientError::RequestError { message: e.to_string() })?;
+        
+        Ok(response)
     }
 
     /// Create or update an object
@@ -101,7 +136,7 @@ impl ScopedClient {
     /// * If the object doesn't exist and has an id, it will be created with the id.
     /// * If the object doesn't exist and doesn't have an id, it will be created with a new id.
     /// * If the object exists and has an id, it will be updated with the id.
-    pub async fn create_or_update_object(&self, object: ModuleObject) -> Result<String, ScopedClientError> {
+    pub async fn create_or_update_object(&self, object: Object) -> Result<String, ScopedClientError> {
         let response = self.create_or_update_objects(vec![object]).await;
         if let Err(e) = response {
             return Err(e);
@@ -117,10 +152,13 @@ impl ScopedClient {
 
     /// Delete an object by its id
     pub async fn delete_object(&self, id: &str) -> Result<(), ScopedClientError> {
-        let response = crate::apis::objects_api_controller_api::modules_module_objects_id_delete(&self.configuration, &self.module, id).await;
-        if let Err(e) = response {
-            return Err(ScopedClientError::RequestError { message: e.to_string() });
-        }
+        self.client
+            .delete(&format!("{}/api/modules/{}/objects/{}", self.pim_url, self.module, id))
+            .send()
+            .await
+            .map_err(|e| ScopedClientError::RequestError { message: e.to_string() })?
+            .error_for_status()
+            .map_err(|e| ScopedClientError::RequestError { message: e.to_string() })?;
 
         Ok(())
     }
@@ -132,14 +170,5 @@ impl Default for ScopedClient {
     /// Do not use this function directly. Use `ScopedClient::new` instead.
     fn default() -> Self {
         ScopedClient::new("https://localhost", "NONE", "NONE")
-    }
-}
-
-impl TryFrom<ModuleConfigField> for String {
-    type Error = ScopedClientError;
-
-    /// Convert a ModuleConfigField to a String containing the name of the field
-    fn try_from(value: ModuleConfigField) -> Result<Self, Self::Error> {
-        value.name.ok_or(ScopedClientError::MissingPropertyError { property: "name".to_string() })
     }
 }
