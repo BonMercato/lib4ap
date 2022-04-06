@@ -22,6 +22,7 @@ pub struct ScopedClient {
     /// Name of the module
     pub module: String,
     client: reqwest::Client,
+    /// URL of the PIM instance
     pub pim_url: String,
     api_key: String,
 }
