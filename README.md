@@ -1,12 +1,14 @@
 # lib4ap
 
-A generic API Client for 4ALLPORTAL.
+## API Client for 4ALLPORTAL
 
 This crate provides a client for the 4ALLPORTAL API.
-In order to be able to use this client, you will need a valid API key for a 4ALLPORTAL instance.
-Username and password authentication is not supported and will not be implemented.
+In order to be able to use this client, you will need
+a valid API key for a 4ALLPORTAL instance.
+Username and password authentication is not supported
+and will not be implemented.
 
-## Getting started
+### Getting started
 
 ```rust
 use lib4ap::ScopedClient;
@@ -21,3 +23,5 @@ async fn main() {
     let products = product_client.get_all_objects(vec!["id", "name"], None, Some(25));
 }
 ```
+
+License: LGPL-3.0-only
