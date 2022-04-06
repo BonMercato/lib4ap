@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::models::{ModuleField, ModuleObject, ObjectList, Object, CreateUpdateObject};
 
 custom_error! {
