@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::models::{ModuleField, ModuleObject, ObjectList, Object};
+use crate::models::{ModuleField, ModuleObject, ObjectList, Object, CreateUpdateObject};
 
 custom_error! {
     /// Error types for API responses
@@ -116,7 +116,7 @@ impl ScopedClient {
     /// * If the object doesn't exist and has an id, it will be created with the id.
     /// * If the object doesn't exist and doesn't have an id, it will be created with a new id.
     /// * If the object exists and has an id, it will be updated with the id.
-    pub async fn create_or_update_objects(&self, objects: Vec<Object>) -> Result<Vec<String>, ScopedClientError> {
+    pub async fn create_or_update_objects(&self, objects: Vec<CreateUpdateObject>) -> Result<Vec<String>, ScopedClientError> {
         let response = self.client
             .patch(&format!("{}/api/modules/{}/objects", self.pim_url, self.module))
             .bearer_auth(&self.api_key)
@@ -136,7 +136,7 @@ impl ScopedClient {
     /// * If the object doesn't exist and has an id, it will be created with the id.
     /// * If the object doesn't exist and doesn't have an id, it will be created with a new id.
     /// * If the object exists and has an id, it will be updated with the id.
-    pub async fn create_or_update_object(&self, object: Object) -> Result<String, ScopedClientError> {
+    pub async fn create_or_update_object(&self, object: CreateUpdateObject) -> Result<String, ScopedClientError> {
         let response = self.create_or_update_objects(vec![object]).await;
         if let Err(e) = response {
             return Err(e);
@@ -154,6 +154,7 @@ impl ScopedClient {
     pub async fn delete_object(&self, id: &str) -> Result<(), ScopedClientError> {
         self.client
             .delete(&format!("{}/api/modules/{}/objects/{}", self.pim_url, self.module, id))
+            .bearer_auth(&self.api_key)
             .send()
             .await
             .map_err(|e| ScopedClientError::RequestError { message: e.to_string() })?

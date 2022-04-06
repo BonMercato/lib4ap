@@ -62,6 +62,14 @@ pub struct Object {
     pub fields: HashMap<String, Vec<ComplexValue>>
 }
 
+#[derive(Serialize, Debug, Clone)]
+pub struct CreateUpdateObject {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(flatten)]
+    pub fields: HashMap<String, Vec<ComplexValue>>,
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct SimpleValue<T> {
     pub value: T,

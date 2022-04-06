@@ -17,3 +17,4 @@ mod models;
 pub mod client;
 
 pub use client::ScopedClient;
+pub use models::*;
