@@ -1,5 +1,10 @@
 #![crate_name = "lib4ap"]
-//! # API Client for 4ALLPORTAL
+//! [![crate-badge]][crate-link] [![docs-badge]][docs-link]
+//! 
+//! [crate-badge]: https://img.shields.io/crates/v/lib4ap.svg
+//! [crate-link]: https://crates.io/crates/lib4ap
+//! [docs-badge]: https://docs.rs/lib4ap/badge.svg
+//! [docs-link]: https://docs.rs/lib4ap
 //! 
 //! This crate provides a client for the 4ALLPORTAL API.
 //! In order to be able to use this client, you will need
@@ -7,7 +12,7 @@
 //! Username and password authentication is not supported 
 //! and will not be implemented.
 //! 
-//! ## Getting started
+//! # Getting started
 //! 
 //! ```rust
 //! use lib4ap::ScopedClient;
