@@ -6,6 +6,7 @@ license = "LGPL-3.0-only"
 authors = ["cozyGalvinism"]
 include = ["src/**/*", "Cargo.toml"]
 description = "API client for 4ALLPORTAL"
+repository = "https://github.com/BonMercato/lib4ap"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
