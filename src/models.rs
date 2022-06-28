@@ -124,7 +124,17 @@ pub struct SimpleValue<T> {
 /// A complex value container
 pub enum ComplexValue {
     /// A simple value which allows for dimensions
-    SimpleValue { value: Option<String>, dimensions: Option<HashMap<String, String>> },
+    SimpleValue { 
+        /// Value of the field
+        value: Option<String>,
+        /// Dimensions of the field 
+        dimensions: Option<HashMap<String, String>> 
+    },
     /// A list of values which allow for dimensions
-    ListValue { value: Vec<String>, dimensions: Option<HashMap<String, String>> },
+    ListValue { 
+        /// Values of the field
+        value: Vec<String>, 
+        /// Dimensions of the field
+        dimensions: Option<HashMap<String, String>> 
+    },
 }
