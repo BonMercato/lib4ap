@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 #![crate_name = "lib4ap"]
 //! [![crate-badge]][crate-link] [![docs-badge]][docs-link]
 //! 
