@@ -1,6 +1,6 @@
-use std::{collections::HashMap, marker::PhantomData};
+use std::collections::HashMap;
 
-use serde::{Deserialize, Deserializer, de::{Visitor, MapAccess}, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]

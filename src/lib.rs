@@ -13,6 +13,8 @@
 //! Username and password authentication is not supported 
 //! and will not be implemented.
 //! 
+//! **NOTE:** So far, only objects are implemented with more support coming in the future.
+//! 
 //! # Getting started
 //! 
 //! ```rust
